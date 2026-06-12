@@ -6,6 +6,7 @@ const KEYS = {
   policies: 'rule-manager.policies',
   theme: 'rule-manager.theme',
   history: 'rule-manager.history',
+  proxyGroups: 'rule-manager.proxyGroups',
 }
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -64,4 +65,12 @@ export function saveHistory(history: RuleTemplate[]): void {
 
 export function loadHistory(): RuleTemplate[] {
   return safeGet<RuleTemplate[]>(KEYS.history, [])
+}
+
+export function saveProxyGroups(groups: string[]): void {
+  safeSet(KEYS.proxyGroups, groups)
+}
+
+export function loadProxyGroups(): string[] {
+  return safeGet<string[]>(KEYS.proxyGroups, [])
 }

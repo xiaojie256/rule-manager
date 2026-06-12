@@ -8,6 +8,9 @@ interface Props {
   issues: ValidationIssue[]
   onReplace: (from: string, to: string) => void
   onBatchReplaceAll: (to: string) => void
+  proxyGroups: string[]
+  onAddProxyGroup: (name: string) => void
+  onRemoveProxyGroup: (name: string) => void
 }
 
 export function RightPanel({
@@ -16,6 +19,9 @@ export function RightPanel({
   issues,
   onReplace,
   onBatchReplaceAll,
+  proxyGroups,
+  onAddProxyGroup,
+  onRemoveProxyGroup,
 }: Props) {
   return (
     <div className="right-panel">
@@ -24,6 +30,9 @@ export function RightPanel({
         policies={policies}
         onReplace={onReplace}
         onBatchReplaceAll={onBatchReplaceAll}
+        proxyGroups={proxyGroups}
+        onAddProxyGroup={onAddProxyGroup}
+        onRemoveProxyGroup={onRemoveProxyGroup}
       />
       <ValidationPanel issues={issues} />
     </div>

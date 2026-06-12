@@ -6,7 +6,7 @@ import { defaultPolicies } from './data/defaultPolicies'
 import { parseYamlToTemplate } from './utils/parser'
 import { exportTemplateToYaml } from './utils/exporter'
 import { validateTemplate, getDuplicateCount } from './utils/validator'
-import { saveTemplates, loadTemplates, saveCurrentTemplate, loadCurrentTemplate, savePolicies, loadPolicies, saveTheme, loadTheme } from './utils/storage'
+import { saveTemplates, loadTemplates, saveCurrentTemplate, loadCurrentTemplate, savePolicies, loadPolicies, saveTheme, loadTheme, saveProxyGroups, loadProxyGroups } from './utils/storage'
 import { createHistoryManager, pushHistory, undo, redo, HistoryManager } from './utils/history'
 import { TopBar } from './components/TopBar'
 import { TemplateSidebar } from './components/TemplateSidebar'
@@ -37,6 +37,7 @@ export default function App() {
   })
   const [currentTemplate, setCurrentTemplate] = useState<RuleTemplate>(() => loadCurrentTemplate() || defaultTemplate)
   const [policies] = useState<PolicyAlias[]>(() => loadPolicies() || defaultPolicies)
+  const [proxyGroups, setProxyGroups] = useState<string[]>(() => loadProxyGroups())
   const historyRef = useRef<HistoryManager>(createHistoryManager())
   const [historyVersion, setHistoryVersion] = useState(0)
   const [importOpen, setImportOpen] = useState(false)
@@ -56,6 +57,7 @@ export default function App() {
   useEffect(() => { saveCurrentTemplate(currentTemplate) }, [currentTemplate])
   useEffect(() => { saveTemplates(templates) }, [templates])
   useEffect(() => { document.documentElement.setAttribute('data-theme', theme); saveTheme(theme) }, [theme])
+  useEffect(() => { saveProxyGroups(proxyGroups) }, [proxyGroups])
 
   const snapshot = useCallback((msg?: string) => {
     historyRef.current = pushHistory(historyRef.current, { ...currentTemplate, id: nanoid(10), updatedAt: Date.now() })
@@ -145,6 +147,9 @@ export default function App() {
       const template = parseYamlToTemplate(yamlText)
       snapshot()
       setCurrentTemplate(prev => ({ ...template, id: prev.id, name: prev.name, createdAt: prev.createdAt }))
+      if (template.proxyGroups && template.proxyGroups.length > 0) {
+        setProxyGroups(prev => Array.from(new Set([...prev, ...template.proxyGroups!])))
+      }
       setImportOpen(false); setImportError(null)
       addToast(`成功导入 ${template.sections.prepend.length + template.sections.append.length + template.sections.delete.length} 条规则`, 'success')
     } catch (e) { setImportError(e instanceof Error ? e.message : '解析失败') }
@@ -155,6 +160,9 @@ export default function App() {
       const template = parseYamlToTemplate(yamlText)
       snapshot()
       setCurrentTemplate(prev => ({ ...template, id: prev.id, name: prev.name, createdAt: prev.createdAt }))
+      if (template.proxyGroups && template.proxyGroups.length > 0) {
+        setProxyGroups(prev => Array.from(new Set([...prev, ...template.proxyGroups!])))
+      }
       addToast('重新解析成功', 'success')
     } catch (e) { addToast(e instanceof Error ? e.message : '解析失败', 'error') }
   }, [snapshot, addToast])
@@ -188,6 +196,16 @@ export default function App() {
       },
     })
   }, [snapshot, updateTemplate, addToast])
+
+  const handleAddProxyGroup = useCallback((name: string) => {
+    setProxyGroups(prev => prev.includes(name) ? prev : [...prev, name])
+    addToast(`已添加策略组: ${name}`, "success")
+  }, [addToast])
+
+  const handleRemoveProxyGroup = useCallback((name: string) => {
+    setProxyGroups(prev => prev.filter(g => g !== name))
+    addToast(`已移除策略组: ${name}`, "info")
+  }, [addToast])
 
   const handleSelectTemplate = useCallback((id: string) => { const t = templates.find(t => t.id === id); if (t) setCurrentTemplate(t) }, [templates])
 
@@ -285,7 +303,7 @@ export default function App() {
           />
           {duplicateCount > 0 && (<div className="duplicate-warning">发现 {duplicateCount} 组重复规则</div>)}
         </div>
-        <RightPanel rules={allRules} policies={policies} issues={validationIssues} onReplace={handlePolicyReplace} onBatchReplaceAll={handleBatchReplaceAll} />
+        <RightPanel rules={allRules} policies={policies} issues={validationIssues} onReplace={handlePolicyReplace} onBatchReplaceAll={handleBatchReplaceAll} proxyGroups={proxyGroups} onAddProxyGroup={handleAddProxyGroup} onRemoveProxyGroup={handleRemoveProxyGroup} />
       </div>
       <ImportDialog open={importOpen} onImport={handleImport} onClose={() => setImportOpen(false)} error={importError} />
       <ExportDialog open={exportOpen} yaml={getYaml()} onClose={() => setExportOpen(false)} />

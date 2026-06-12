@@ -23,6 +23,7 @@ export interface RuleTemplate {
     append: RuleItem[]
     delete: RuleItem[]
   }
+  proxyGroups?: string[]
   createdAt: number
   updatedAt: number
 }

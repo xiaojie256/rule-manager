@@ -54,10 +54,23 @@ export function parseYamlToTemplate(yamlText: string): RuleTemplate {
     }
   }
 
+  // Extract proxy-groups from YAML
+  const proxyGroups: string[] = Array.isArray(doc['proxy-groups'])
+    ? (doc['proxy-groups'] as unknown[])
+        .map((g: unknown) => {
+          if (g && typeof g === 'object' && 'name' in (g as Record<string, unknown>)) {
+            return String((g as { name?: unknown }).name || '').trim()
+          }
+          return ''
+        })
+        .filter(Boolean)
+    : []
+
   return {
     id: nanoid(10),
     name: '导入的模板',
     sections,
+    proxyGroups,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   }
