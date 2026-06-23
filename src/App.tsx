@@ -29,6 +29,22 @@ function useToast() {
   return { messages, addToast, removeToast }
 }
 
+function upsertTemplateList(list: RuleTemplate[], template: RuleTemplate): RuleTemplate[] {
+  const index = list.findIndex(item => item.id === template.id)
+
+  if (index === -1) {
+    return [...list, template]
+  }
+
+  if (list[index] === template) {
+    return list
+  }
+
+  const next = [...list]
+  next[index] = template
+  return next
+}
+
 export default function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>(loadTheme)
   const [templates, setTemplates] = useState<RuleTemplate[]>(() => {
@@ -54,8 +70,15 @@ export default function App() {
   const disabledCount = allRules.filter(r => !r.enabled).length
   const duplicateCount = getDuplicateCount(currentTemplate)
 
-  useEffect(() => { saveCurrentTemplate(currentTemplate) }, [currentTemplate])
-  useEffect(() => { saveTemplates(templates) }, [templates])
+  useEffect(() => {
+    saveCurrentTemplate(currentTemplate)
+
+    setTemplates(prev => upsertTemplateList(prev, currentTemplate))
+  }, [currentTemplate])
+
+  useEffect(() => {
+    saveTemplates(templates)
+  }, [templates])
   useEffect(() => { document.documentElement.setAttribute('data-theme', theme); saveTheme(theme) }, [theme])
   useEffect(() => { saveProxyGroups(proxyGroups) }, [proxyGroups])
 
@@ -253,7 +276,22 @@ export default function App() {
   }, [templates, addToast])
 
   const handleNewTemplate = useCallback(() => { handleCreateTemplate() }, [handleCreateTemplate])
-  const handleSave = useCallback(() => { snapshot('草稿已保存') }, [snapshot])
+  const handleSave = useCallback(() => {
+    const savedTemplate: RuleTemplate = {
+      ...currentTemplate,
+      updatedAt: Date.now(),
+    }
+
+    const nextTemplates = upsertTemplateList(templates, savedTemplate)
+
+    setCurrentTemplate(savedTemplate)
+    setTemplates(nextTemplates)
+
+    saveCurrentTemplate(savedTemplate)
+    saveTemplates(nextTemplates)
+
+    addToast('已保存到当前模板，刷新后仍会保留', 'success')
+  }, [currentTemplate, templates, addToast])
 
   const handleClear = useCallback(() => {
     setConfirmDialog({
